@@ -1,0 +1,34 @@
+{
+  "name": "mkr-vote-proxy",
+  "version": "1.0.0",
+  "description": "Coinbase cold storage-compatible smart contract for voting MKR with funds secured in cold storage.",
+  "main": "truffle-config.js",
+  "directories": {
+    "test": "test"
+  },
+  "devDependencies": {
+    "truffle-assertions": "^0.8.2",
+    "dotenv": "^7.0.0",
+    "node-token": "^1.0.1",
+    "truffle": "^5.0.14",
+    "truffle-hdwallet-provider": "^1.0.6",
+    "ganache-cli": "^6.4.3",
+    "node-gyp": "^4.0.0",
+    "solidity-coverage": "git+https://github.com/ace0/solidity-coverage.git",
+    "truffle-flattener": "^1.3.0"
+  },
+  "scripts": {
+    "test": "npx truffle test",
+    "migrate-ropsten": "truffle migrate --network ropsten",
+    "coverage": "./node_modules/.bin/solidity-coverage",
+    "docs": "npx truffle-flattener contracts/VoteProxyFactory.sol | solc --devdoc - > docs/vote-proxy.json",
+    "dev-blockchain": "npx ganache-cli -p 7545 -l 4000000000 -g 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git@github.cbhq.net:security/mkr-vote-proxy.git"
+  },
+  "author": "Dr Adam Everspaugh",
+  "license": "ISC",
+  "dependencies": {}
+}

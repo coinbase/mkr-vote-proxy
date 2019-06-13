@@ -1,0 +1,30 @@
+version: 2
+workflows:
+  version: 2
+  build:
+    jobs:
+      - tests
+      - salus
+jobs:
+  tests:
+    docker:
+      - image: node:8
+    steps:
+      - checkout
+      - run:
+          name: Installing package
+          command: npm install --no-optional
+
+      - run:
+          name: Starting local blockchain
+          command: npm run dev-blockchain
+          background: true
+
+      - run:
+          name: Running unit tests
+          command: npm test
+  salus:
+    machine: true
+    steps:
+      - checkout
+      - run: docker run -t -v $(pwd):/home/repo coinbase/salus
