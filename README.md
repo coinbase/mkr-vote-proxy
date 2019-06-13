@@ -5,7 +5,7 @@ of private keys held in cold storage.
 
 ### MKR voting
 MKR holders vote by depositing MKR into a voting contract designated by MakerDao.
-This contract, DSChief, [src](https://github.com/dapphub/ds-chief/blob/master/src/chief.sol]),
+This contract, DSChief [src](https://github.com/dapphub/ds-chief/blob/master/src/chief.sol),
 receives MKR deposits and permits the depositor to cast votes based on the number
 of tokens deposited. Depositors can release their tokens at any time (and their votes
 are removed as well).
