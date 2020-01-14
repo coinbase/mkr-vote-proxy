@@ -2,6 +2,7 @@ pragma solidity >=0.5.0;
 
 import "ds-token/token.sol";
 import "ds-chief/chief.sol";
+import "symbolic-voting/polling.sol";
 
 /// @dev Vote MKR tokens with a hot key and ensure all assets are returned to a cold key.
 /// Expected flow: originate a contract with hot, cold keys; pointed to an active DSChief
@@ -13,14 +14,17 @@ contract VoteProxy {
   DSToken public gov;
   DSToken public iou;
   DSChief public chief;
+  PollingEmitter public polling;
 
   /// @dev Create a new VoteProxy smart contract
+  /// @param _polling The address of a PollingEvents contract instance used for polls
   /// @param _chief The address of a DSChief voting contract which which this proxy will interact
   /// @param _cold  The address of a "cold key"; funds are returned to this key only upon release().
   /// As a contingency, this key can also call all public methods on this contract.
   /// @param _hot   The address of a "hot" or admin key. This is the key that is intended to be
   /// used to interact with this contract.
-  constructor(DSChief _chief, address _cold, address _hot) public {
+  constructor(PollingEmitter _polling, DSChief _chief, address _cold, address _hot) public {
+    polling = _polling;
     chief = _chief;
     cold = _cold;
     hot = _hot;
@@ -67,5 +71,13 @@ contract VoteProxy {
     // Ensure all GOV (MKR) has been locked to the DSChief prior to placing the vote
     lock();
     return chief.vote(issues);
+  }
+
+  /// @dev Place a vote for an option of a poll
+  /// @param pollId A uint id that acts as a unique identifier for a poll
+  /// @param optionId A uint id that acts as a unique identifier for a child option of a poll
+  function votePoll(uint256 pollId, uint256 optionId) public auth {
+    // Vote weight is calculated off chain and equals (proxyBalance + DSChief balance)
+    polling.vote(pollId, optionId);
   }
 }
