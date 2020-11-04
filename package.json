@@ -8,14 +8,13 @@
   },
   "devDependencies": {
     "dotenv": "^7.0.0",
-    "ganache-cli": "^6.9.1",
+    "ganache-cli": "^6.12.1",
     "node-gyp": "^4.0.0",
     "node-token": "^1.0.1",
-    "solidity-coverage": "^0.7.9",
-    "truffle": "^5.1.33",
-    "truffle-assertions": "^0.9.2",
-    "truffle-flattener": "^1.4.4",
-    "truffle-hdwallet-provider": "^1.0.17"
+    "solidity-coverage": "git+https://github.com/ace0/solidity-coverage.git",
+    "truffle": "^5.1.51",
+    "truffle-assertions": "^0.8.2",
+    "truffle-flattener": "^1.5.0"
   },
   "scripts": {
     "test": "npx truffle test",
@@ -30,5 +29,8 @@
   },
   "author": "Dr Adam Everspaugh",
   "license": "ISC",
-  "dependencies": {}
+  "dependencies": {
+    "@truffle/hdwallet-provider": "^1.1.1",
+    "elliptic": "^6.5.3"
+  }
 }
