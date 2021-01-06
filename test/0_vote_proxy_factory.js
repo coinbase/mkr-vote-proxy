@@ -1,4 +1,5 @@
 const VoteProxyFactory = artifacts.require('VoteProxyFactory');
+const PollingEmitter = artifacts.require('PollingEmitter');
 const VoteProxy = artifacts.require('VoteProxy');
 const DSChief = artifacts.require('DSChief');
 const DSToken = artifacts.require('DSToken');
@@ -18,33 +19,35 @@ contract('VoteProxyFactory', (accounts) => {
   let iou;
   let chief;
   let proxyFactory;
+  let polling;
 
   beforeEach(async () => {
     mkr = await DSToken.new(symbolMKR);
     iou = await DSToken.new(symbolIOU);
     chief = await DSChief.new(mkr.address, iou.address, maxSlateSize);
+    polling = await PollingEmitter.new();
     proxyFactory = await VoteProxyFactory.new();
   });
 
   it('should store the contract address in a mapping', async () => {
-    await proxyFactory.newProxy(chief.address, coldKey, { from: hotKey });
+    await proxyFactory.newProxy(polling.address, chief.address, coldKey, { from: hotKey });
     const proxy = await proxyFactory.proxies.call(hotKey);
     assert.notEqual(proxy, noAddress);
   });
 
   it('should generate only one proxy per hot key', async () => {
-    await proxyFactory.newProxy(chief.address, coldKey, { from: hotKey });
+    await proxyFactory.newProxy(polling.address, chief.address, coldKey, { from: hotKey });
 
     await truffleAssert.reverts(
-      proxyFactory.newProxy(chief.address, coldKey, { from: hotKey })
+      proxyFactory.newProxy(polling.address, chief.address, coldKey, { from: hotKey })
     );
   });
 
   it('should generate multiple proxies for different hot keys', async () => {
-    await proxyFactory.newProxy(chief.address, coldKey, { from: hotKey });
-    await proxyFactory.newProxy(chief.address, coldKey, { from: accounts[4] });
-    await proxyFactory.newProxy(chief.address, coldKey, { from: accounts[5] });
-    await proxyFactory.newProxy(chief.address, coldKey, { from: accounts[6] });
+    await proxyFactory.newProxy(polling.address, chief.address, coldKey, { from: hotKey });
+    await proxyFactory.newProxy(polling.address, chief.address, coldKey, { from: accounts[4] });
+    await proxyFactory.newProxy(polling.address, chief.address, coldKey, { from: accounts[5] });
+    await proxyFactory.newProxy(polling.address, chief.address, coldKey, { from: accounts[6] });
   });
 
   context('mapping', () => {
@@ -52,7 +55,7 @@ contract('VoteProxyFactory', (accounts) => {
     let proxy;
 
     beforeEach(async () => {
-      await proxyFactory.newProxy(chief.address, coldKey, { from: hotKey });
+      await proxyFactory.newProxy(polling.address, chief.address, coldKey, { from: hotKey });
       proxyAddress = await proxyFactory.proxies.call(hotKey);
       proxy = await VoteProxy.at(proxyAddress);
     });

@@ -2,7 +2,8 @@ const VoteProxy = artifacts.require("VoteProxy");
 const DSChief = artifacts.require("DSChief");
 const DSChiefFab = artifacts.require("DSChiefFab");
 const DSToken = artifacts.require("DSToken");
-const contractAssert = require('truffle-assertions');
+const PollingEmitter = artifacts.require("PollingEmitter");
+const contractAssert = require("truffle-assertions");
 
 contract('VoteProxy', function(accounts) {
   const symbolMKR = "0x4d4b52" // 'MKR'
@@ -38,6 +39,7 @@ contract('VoteProxy', function(accounts) {
   let iou;
   let chief;
   let proxy;
+  let polling;
 
   // Fetch balance for a given token
   async function tokenBalance(token, address) {
@@ -74,12 +76,14 @@ contract('VoteProxy', function(accounts) {
     mkr = await DSToken.new(symbolMKR);
     iou = await DSToken.new(symbolIOU);
     chief = await DSChief.new(mkr.address, iou.address, maxSlateSize);
+    polling = await PollingEmitter.new();
+
 
     // Mint some MKR before we hand off control to the Chief
     await mkr.mint(fundSource, mkrSupply);
     await iou.setOwner(chief.address);
     await mkr.setOwner(chief.address);
-    proxy = await VoteProxy.new(chief.address, coldKey, hotKey);
+    proxy = await VoteProxy.new(polling.address, chief.address, coldKey, hotKey);
 
     // Etch LEAF and Stray and set the slates.
     await chief.etch(leafAddressList);
@@ -129,6 +133,11 @@ contract('VoteProxy', function(accounts) {
         await contractAssert.reverts(
           proxy.release({from: controlKey}));
       });
+
+      it("cannot call votePoll()", async () => {
+        await contractAssert.reverts(
+          proxy.votePoll(1, 1, {from: controlKey}));        
+      })
     };
 
     // Expecting no errors
@@ -309,85 +318,137 @@ contract('VoteProxy', function(accounts) {
   });
 
   context('should register votes with chief', async () => {
-      const deposit = 271828;
-      const controlKey = hotKey;
+    const deposit = 271828;
+    const controlKey = hotKey;
 
-      beforeEach(async () => {
-        await mkr.push(proxy.address, deposit, {from: fundSource});
-      });
+    beforeEach(async () => {
+      await mkr.push(proxy.address, deposit, {from: fundSource});
+    });
 
-      it('registers votes with single vote()', async () => {
-        await proxy.voteAddresses(leafAddressList, {from: controlKey});
-        assertApprovalsEqual(deposit, leafAddressList);
-      });
+    it('registers votes with single vote()', async () => {
+      await proxy.voteAddresses(leafAddressList, {from: controlKey});
+      assertApprovalsEqual(deposit, leafAddressList);
+    });
 
-      it('registers votes after lock/vote', async () => {
-        await proxy.lock({from: controlKey});
-        await proxy.voteAddresses(leafAddressList, {from: controlKey});
-        assertApprovalsEqual(deposit, leafAddressList);
-      });
+    it('registers votes after lock/vote', async () => {
+      await proxy.lock({from: controlKey});
+      await proxy.voteAddresses(leafAddressList, {from: controlKey});
+      assertApprovalsEqual(deposit, leafAddressList);
+    });
 
-      it('registers votes after change',
-        async () => {
-        await proxy.voteAddresses(leafAddressList, {from: controlKey});
-        await proxy.voteAddresses(strayAddressList, {from: controlKey});
-        assertApprovalsEqual(deposit, strayAddressList);
-      });
+    it('registers votes after change',
+      async () => {
+      await proxy.voteAddresses(leafAddressList, {from: controlKey});
+      await proxy.voteAddresses(strayAddressList, {from: controlKey});
+      assertApprovalsEqual(deposit, strayAddressList);
+    });
 
-      it('registers no votes for original slate after change',
-        async () => {
-        await proxy.voteAddresses(leafAddressList, {from: controlKey});
-        await proxy.voteAddresses(strayAddressList, {from: controlKey});
-        assertApprovalsEqual(0, leafAddressList);
-      });
+    it('registers no votes for original slate after change',
+      async () => {
+      await proxy.voteAddresses(leafAddressList, {from: controlKey});
+      await proxy.voteAddresses(strayAddressList, {from: controlKey});
+      assertApprovalsEqual(0, leafAddressList);
+    });
 
-      it('makes no change if re-voting for the same slate',
-        async () => {
-        await proxy.voteAddresses(strayAddressList, {from: controlKey});
-        await proxy.voteAddresses(strayAddressList, {from: controlKey});
-        assertApprovalsEqual(deposit, strayAddressList);
-      });
+    it('makes no change if re-voting for the same slate',
+      async () => {
+      await proxy.voteAddresses(strayAddressList, {from: controlKey});
+      await proxy.voteAddresses(strayAddressList, {from: controlKey});
+      assertApprovalsEqual(deposit, strayAddressList);
+    });
 
-      it('permits multiple deposits and re-votes',
-        async () => {
-        // vote
-        await proxy.voteAddresses(strayAddressList, {from: controlKey});
+    it('permits multiple deposits and re-votes',
+      async () => {
+      // vote
+      await proxy.voteAddresses(strayAddressList, {from: controlKey});
 
-        // Deposit and change
-        await mkr.push(proxy.address, deposit, {from: fundSource});
-        await proxy.voteAddresses(leafAddressList, {from: controlKey});
-        assertApprovalsEqual(2*deposit, leafAddressList);
-      });
+      // Deposit and change
+      await mkr.push(proxy.address, deposit, {from: fundSource});
+      await proxy.voteAddresses(leafAddressList, {from: controlKey});
+      assertApprovalsEqual(2*deposit, leafAddressList);
+    });
 
-      it('permits multiple deposits and re-votes for same slate',
-        async () => {
-        // vote
-        await proxy.voteAddresses(leafAddressList, {from: controlKey});
+    it('permits multiple deposits and re-votes for same slate',
+      async () => {
+      // vote
+      await proxy.voteAddresses(leafAddressList, {from: controlKey});
 
-        // Deposit and vote
-        await mkr.push(proxy.address, deposit, {from: fundSource});
-        await proxy.voteAddresses(leafAddressList, {from: controlKey});
-        assertApprovalsEqual(2*deposit, leafAddressList);
-      });
+      // Deposit and vote
+      await mkr.push(proxy.address, deposit, {from: fundSource});
+      await proxy.voteAddresses(leafAddressList, {from: controlKey});
+      assertApprovalsEqual(2*deposit, leafAddressList);
+    });
 
-      it('registers votes after a large number of deposits',
-        async () => {
-        const cnt = 100;
-        const microDeposit = 100;
+    it('registers votes after a large number of deposits',
+      async () => {
+      const cnt = 100;
+      const microDeposit = 100;
 
-        // Large number of deposits
-        for (let i=0; i < cnt; ++i) {
-          await mkr.push(proxy.address, microDeposit, {from: fundSource});
-        }
+      // Large number of deposits
+      for (let i=0; i < cnt; ++i) {
+        await mkr.push(proxy.address, microDeposit, {from: fundSource});
+      }
 
-        // vote
-        await proxy.voteAddresses(strayAddressList, {from: controlKey});
-        assertApprovalsEqual(cnt*microDeposit+deposit, strayAddressList);
-      });
+      // vote
+      await proxy.voteAddresses(strayAddressList, {from: controlKey});
+      assertApprovalsEqual(cnt*microDeposit+deposit, strayAddressList);
+    });
 
-      it('registers votes when voting with address list', async() => {
-        await proxy.voteAddresses(leafAddressList, {from: controlKey});
-        assertApprovalsEqual(deposit, leafAddressList);
-      });
+    it('registers votes when voting with address list', async() => {
+      await proxy.voteAddresses(leafAddressList, {from: controlKey});
+      assertApprovalsEqual(deposit, leafAddressList);
+    });
+  });
+
+  context('When voting for poll', async () => {
+    const authKey = hotKey;
+    const deposit = 9001;
+
+    it('accepts uint arguments', async () => {
+      await proxy.votePoll(1, 1, {from: authKey});
+    });
+
+    it('shouldnt allow random people to vote', async () => {
+      await contractAssert.reverts(proxy.votePoll(1, 1, {from: otherKey}));
+    });
+
+    it('shouldn\'t interfere with the users ability to cast normal votes', async () => {
+      await mkr.push(proxy.address, deposit, {from: fundSource});
+
+      await proxy.votePoll(1, 1, {from: authKey});
+
+      await proxy.voteAddresses(strayAddressList, {from: authKey});
+
+      await proxy.votePoll(2, 3, {from: authKey});
+
+      assertApprovalsEqual(deposit, strayAddressList);
+    });
+
+    it('shouldnt block releases', async () => {
+      await mkr.push(proxy.address, deposit, {from: fundSource});
+
+      await proxy.votePoll(14, 42, {from: authKey});
+
+      await proxy.release({from: authKey});
+
+      assert.equal(deposit, await mkrBalance(coldKey));
+    });
+
+    it('emits a voting event', async () => {
+      const _pollId = 11;
+      const _optionId = 12;
+
+      await proxy.votePoll(_pollId, _optionId, {from: authKey});
+
+      const votes = await polling.getPastEvents( 'Voted', { fromBlock: 0, toBlock: 'latest' } );
+
+      assert.equal(votes.length, 1);
+
+      const [{ returnValues: { voter, pollId, optionId } }] = votes;
+
+      assert.equal(proxy.address, voter);
+      assert.equal(_pollId, pollId);
+      assert.equal(_optionId, optionId);
+    });
   });
 });
