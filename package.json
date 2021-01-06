@@ -12,7 +12,7 @@
     "node-gyp": "^4.0.0",
     "node-token": "^1.0.1",
     "solidity-coverage": "git+https://github.com/ace0/solidity-coverage.git",
-    "truffle": "^5.1.51",
+    "truffle": "^5.1.60",
     "truffle-assertions": "^0.8.2",
     "truffle-flattener": "^1.5.0"
   },
@@ -30,7 +30,7 @@
   "author": "Dr Adam Everspaugh",
   "license": "ISC",
   "dependencies": {
-    "@truffle/hdwallet-provider": "^1.1.1",
+    "@truffle/hdwallet-provider": "^1.2.1",
     "elliptic": "^6.5.3"
   }
 }
