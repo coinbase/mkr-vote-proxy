@@ -31,6 +31,6 @@
   "license": "ISC",
   "dependencies": {
     "@truffle/hdwallet-provider": "^1.2.1",
-    "elliptic": "^6.5.3"
+    "elliptic": "^6.5.4"
   }
 }
